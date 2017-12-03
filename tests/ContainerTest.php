@@ -48,7 +48,7 @@ class ContainerTest extends \PHPUnit\Framework\TestCase {
         $object = new \LMSzor\Container\Container();
         $this->assertInstanceOf(\LMSzor\Container\Container::class, $object);
 
-        $this->expectException(\LMSzor\Container\EntryNotFound::class);
+        $this->expectException(\LMSzor\Container\ClassNotFoundInGlobalSpaceException::class);
         $object->get('Some\\Not\\Existing\\Entry');
     }
 

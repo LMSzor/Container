@@ -10,7 +10,8 @@
   ],
   "autoload": {
     "psr-4": {
-      "LMSzor\\Container\\": "src/"
+      "LMSzor\\Container\\": "src/",
+      "LMSzor\\Mockup\\": "mockup/"
     }
   },
   "minimum-stability": "stable",
