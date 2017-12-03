@@ -1,0 +1,23 @@
+{
+  "name": "lmszor/container",
+  "description": "PSR-11 compatible container",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "LMSzor",
+      "email": "l.m.szor@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "LMSzor\\Container\\": "src/"
+    }
+  },
+  "minimum-stability": "stable",
+  "require": {
+    "psr/container": "^1.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^6.5"
+  }
+}
