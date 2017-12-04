@@ -19,10 +19,6 @@ class Container implements ContainerInterface {
      */
     public function get($id) {
         if(! $this->has($id)) {
-            if(! class_exists($id)) {
-                throw new ClassNotFoundInGlobalSpaceException($id);
-            }
-
             $this->add($id, $this->createNewEntry($id));
         }
 
@@ -32,13 +28,19 @@ class Container implements ContainerInterface {
     /**
      * @param string $id
      *
-     * @return mixed
+     * @return bool
      */
     public function has($id): bool {
         return isset($this->entries[$id]);
     }
 
-    public function add($id, $entry) {
+    public function add($id, $entry = null) {
+        if($entry === null) {
+            $provider = $this->createNewEntry($id);
+            $entry = $provider->register();
+            $id = get_class($entry);
+        }
+
         if($entry instanceof \Closure) {
             $entry = $entry($this);
         }
@@ -49,10 +51,14 @@ class Container implements ContainerInterface {
     /**
      * @param string $id
      *
-     * @return mixed
+     * @return object
      * @throws ClassNotFoundInGlobalSpaceException
      */
-    public function createNewEntry(string $id) {
+    private function createNewEntry(string $id) {
+        if(! class_exists($id)) {
+            throw new ClassNotFoundInGlobalSpaceException($id);
+        }
+
         $reflection = new \ReflectionClass($id);
 
         if($reflection->getConstructor() === null) {
