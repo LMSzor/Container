@@ -1,6 +1,6 @@
 {
   "name": "lmszor/container",
-  "description": "PSR-11 compatible container",
+  "description": "PSR-11 compatible container with basic autowiring implementation.",
   "license": "MIT",
   "authors": [
     {
