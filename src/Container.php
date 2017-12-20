@@ -89,17 +89,19 @@ class Container implements ContainerInterface {
    * @return array[]
    */
   private function prepareReflectionParameters(array $arguments) {
+    $parameters = [];
+    
     foreach($arguments as $argument) {
       $typeHint = $argument->getClass()->getName();
 
       if($this->has($typeHint)) {
-        $argumentsEntries[] = $this->get($typeHint);
+        $parameters[] = $this->get($typeHint);
         continue;
       }
       
-      $argumentsEntries[] = $this->createObjectReflection($typeHint);
+      $parameters[] = $this->createObjectReflection($typeHint);
     }
     
-    return $argumentsEntries;
+    return $parameters;
   }
 }
