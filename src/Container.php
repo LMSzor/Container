@@ -20,7 +20,7 @@ class Container implements ContainerInterface {
      */
     public function get($id) {
         if(! $this->has($id)) {
-            $this->add($id, $this->createObjectReflection($id));
+            $this->add($id, $this->createObject($id));
         }
 
         return $this->entries[$id];
@@ -40,8 +40,8 @@ class Container implements ContainerInterface {
    */
   public function add($entry) {
     if($entry instanceof \Closure) {
-      $entry = $this->createClosureReflection($entry);
-    } else if(($object = $this->createObjectReflection($entry)) && $object instanceof EntryProviderInterface) {
+      $entry = $this->createFromClosure($entry);
+    } else if(($object = $this->createObject($entry)) && $object instanceof EntryProviderInterface) {
       $entry = $object->register();
     }
     
@@ -54,7 +54,7 @@ class Container implements ContainerInterface {
    * @return object
    * @throws ClassNotFoundInGlobalSpaceException
    */
-  private function createObjectReflection(string $id) {
+  protected function createObject(string $id) {
     if(! class_exists($id)) {
       throw new ClassNotFoundInGlobalSpaceException($id);
     }
@@ -75,7 +75,7 @@ class Container implements ContainerInterface {
    *
    * @return object
    */
-  private function createClosureReflection(\Closure $closure) {
+  protected function createFromClosure(\Closure $closure) {
     $reflection = new \ReflectionFunction($closure);
       
     $arguments = $reflection->getParameters();
@@ -94,12 +94,11 @@ class Container implements ContainerInterface {
     foreach($arguments as $argument) {
       $typeHint = $argument->getClass()->getName();
 
-      if($this->has($typeHint)) {
-        $parameters[] = $this->get($typeHint);
-        continue;
+      if(! $this->has($typeHint)) {
+        $this->add($typeHint);
       }
       
-      $parameters[] = $this->createObjectReflection($typeHint);
+      $parameters[] = $this->get($typeHint);
     }
     
     return $parameters;
