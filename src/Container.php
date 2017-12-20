@@ -2,6 +2,7 @@
 
 namespace LMSzor\Container;
 
+use LMSzor\Container\EntryProviderInterface;
 use Psr\Container\ContainerInterface;
 
 class Container implements ContainerInterface {
@@ -13,13 +14,13 @@ class Container implements ContainerInterface {
 
     /**
      * @param string $id
-     *
-     * @return mixed
+     * @return object
      * @throws ClassNotFoundInGlobalSpaceException
+     * @see Psr\Container\ContainerInterface::get()
      */
     public function get($id) {
         if(! $this->has($id)) {
-            $this->add($id, $this->createNewEntry($id));
+            $this->add($id, $this->createObjectReflection($id));
         }
 
         return $this->entries[$id];
@@ -27,61 +28,78 @@ class Container implements ContainerInterface {
 
     /**
      * @param string $id
-     *
      * @return bool
+     * @see Psr\Container\ContainerInterface::has()
      */
-    public function has($id): bool {
+    public function has($id) {
         return isset($this->entries[$id]);
     }
+  
+  /**
+   * @param \Closure|EntryProviderInterface|object $entry
+   */
+  public function add($entry) {
+    if($entry instanceof \Closure) {
+      $entry = $this->createClosureReflection($entry);
+    } else if(($object = $this->createObjectReflection($entry)) && $object instanceof EntryProviderInterface) {
+      $entry = $object->register();
+    }
+    
+    $this->entries[get_class($entry)] = $entry;
+  }
 
-    public function add($id, $entry = null) {
-        if($entry === null) {
-            $provider = $this->createNewEntry($id);
-            $entry = $provider->register();
-            $id = get_class($entry);
-        }
-
-        if($entry instanceof \Closure) {
-            $entry = $entry($this);
-        }
-
-        $this->entries[$id] = $entry;
+  /**
+   * @param string $id
+   *
+   * @return object
+   * @throws ClassNotFoundInGlobalSpaceException
+   */
+  private function createObjectReflection(string $id) {
+    if(! class_exists($id)) {
+      throw new ClassNotFoundInGlobalSpaceException($id);
     }
 
-    /**
-     * @param string $id
-     *
-     * @return object
-     * @throws ClassNotFoundInGlobalSpaceException
-     */
-    private function createNewEntry(string $id) {
-        if(! class_exists($id)) {
-            throw new ClassNotFoundInGlobalSpaceException($id);
-        }
-
-        $reflection = new \ReflectionClass($id);
-
-        if($reflection->getConstructor() === null) {
-            return new $id();
-        }
-
-        $object = null;
-        $argumentsEntries = [];
-        $arguments = $reflection->getConstructor()->getParameters();
-
-        foreach($arguments as $argument) {
-            $typeHint = $argument->getClass()->getName();
-
-            if($this->has($typeHint)) {
-                $argumentsEntries[] = $this->get($typeHint);
-                continue;
-            }
-
-            $argumentsEntries[] = $this->createNewEntry($typeHint);
-        }
-
-        $object = $reflection->newInstanceArgs($argumentsEntries);
-
-        return $object;
+    $reflection = new \ReflectionClass($id);
+    $parameters = [];
+    
+    if($reflection->getConstructor() !== null) {
+      $arguments = $reflection->getConstructor()->getParameters();
+      $parameters = $this->prepareReflectionParameters($arguments);
     }
+
+    return $reflection->newInstanceArgs($parameters);
+  }
+  
+  /**
+   * @param \Closure $closure
+   *
+   * @return object
+   */
+  private function createClosureReflection(\Closure $closure) {
+    $reflection = new \ReflectionFunction($closure);
+      
+    $arguments = $reflection->getParameters();
+    $parameters = $this->prepareReflectionParameters($arguments);
+
+    return $reflection->invokeArgs($parameters);
+  }
+  
+  /**
+   * @param ReflectionParameter[] $arguments
+   * @return array[]
+   */
+  private function prepareReflectionParameters(array $arguments) {
+    foreach($arguments as $argument) {
+      $typeHint = $argument->getClass()->getName();
+
+      if($this->has($typeHint)) {
+        $argumentsEntries[] = $this->get($typeHint);
+        continue;
+      }
+      
+      $argumentsEntries[] = $this->createObjectReflection($typeHint);
+    }
+    
+    return $argumentsEntries;
+  }
 }
