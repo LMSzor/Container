@@ -36,13 +36,19 @@ class Container implements ContainerInterface {
     }
   
   /**
-   * @param \Closure|EntryProviderInterface|object $entry
+   * @param \Closure|EntryProviderInterface|object|string $entry
    */
   public function add($entry) {
     if($entry instanceof \Closure) {
       $entry = $this->createFromClosure($entry);
-    } else if(($object = $this->createObject($entry)) && $object instanceof EntryProviderInterface) {
-      $entry = $object->register();
+    } else {
+      $object = $this->createObject($entry);
+        
+      if($object instanceof EntryProviderInterface) {
+        $entry = $object->register();
+      } else {
+        $entry = $object;
+      }
     }
     
     $this->entries[get_class($entry)] = $entry;
@@ -88,7 +94,7 @@ class Container implements ContainerInterface {
    * @param ReflectionParameter[] $arguments
    * @return array[]
    */
-  private function prepareReflectionParameters(array $arguments) {
+  protected function prepareReflectionParameters(array $arguments) {
     $parameters = [];
     
     foreach($arguments as $argument) {
